@@ -7,7 +7,7 @@ const int dirPin = 5;
 const int stepPin = 2;
 const int dirPin2 =6;
 const int stepPin2 = 3;
-const int magnet = 12;
+const int magnet = 11;
 
 //define limit switches
 
@@ -34,10 +34,10 @@ void setup() {
   Serial.begin(9600);     
 
   // Stepper Motor Settings
-  stepper1.setMaxSpeed(12000);
-  stepper1.setAcceleration(6000);
-  stepper2.setMaxSpeed(12000);
-  stepper2.setAcceleration(6000);
+  stepper1.setMaxSpeed(2000);
+  stepper1.setAcceleration(2550);
+  stepper2.setMaxSpeed(2000);
+  stepper2.setAcceleration(2550);
   float pos1 = 200;
   float pos2 = 200;
 
