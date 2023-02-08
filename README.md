@@ -7,16 +7,13 @@ ___
 
 With its innovative gantry mechanism, inlaid sensing system, and advanced chess engine, Gambit offers the full experience of playing chess on a physical board - but with the added benefit of being able to play against a challenging and dynamic opponent. Whether you're looking to improve your chess skills or simply enjoy a game on your own, Gambit is the perfect solution. </font>
 
-<div style="display: flex; justify-content: center;">
-  <figure style="margin-right: 10px;">
-    <img src="images/gambitChessboard.jpg" width="400" height="300" />
-    <figcaption style="text-align: center;">Iteration One</figcaption>
-  </figure>
-  <figure>
-    <img src="images/gambit_new.jpg" width="400" height="300" />
-    <figcaption style="text-align: center;">Iteration Three (Current)</figcaption>
-  </figure>
-</div>
+<p align='center'>
+    <img src="images/gambitChessboard.jpg" width="400" height="300" style="margin-right: 10px;">
+    <img src="images/gambit_new.jpg" width="400" height="300" >
+</p>
+<p align = 'center'>
+Gambit Iterations One and Three (current) Respectively
+<p/>
 
 
 ___
@@ -36,26 +33,23 @@ In January 2021, the seeds of Gambit were planted as I embarked on a solo journe
 
 By May 2022, we had successfully created a functional prototype with a massive footprint of approximately 5 inches tall, 32 inches long, and 27 inches wide. Despite the aesthetic appeal of a top plate that was half wood and half acrylic, it presented significant mechanical challenges. Despite these challenges, I was undeterred and continued to work on the project on my own, now at the University of California, Berkeley.
 
-<div style="display: flex; justify-content: center;">
-  <figure style="margin-right: 10px;">
-    <img src="images/team.jpg" width="400" height="300" />
-    <figcaption style="text-align: center;">Texas A&M University Capstone Team</figcaption>
-  </figure>
-</div>
+
+<p align = 'center'>
+<img src="images/Team.jpg" width="400" height="300">
+<p/>
+<p align = 'center'>
+Texas A&M Capstone Team
+<p/>
 
 Armed with a makerspace and a renewed sense of determination, I set out to create the third iteration of Gambit. This version was much smaller and more compact, standing at 2.5 inches tall, 27 inches long, and 24 inches wide. I also made significant improvements to the gantry system, sensing system, and chess engine, ensuring that Gambit would be a user-friendly and enjoyable experience for players of all skill levels. 
 
-
-<div style="display: flex; justify-content: center;">
-  <figure style="margin-right: 10px;">
-    <img src="images/piece_moving.gif" width="400" height="300" />
-    <figcaption style="text-align: center;">Piece Movement</figcaption>
-  </figure>
-  <figure>
-    <img src="images/gantry_move.gif" width="400" height="300" />
-    <figcaption style="text-align: center;">Internal Gantry Movement</figcaption>
-  </figure>
-</div>
+<p align='center'>
+    <img src="images/piece_moving.gif" width="400" height="300" style="margin-right: 10px;">
+    <img src="images/gantry_move.gif" width="400" height="300" >
+</p>
+<p align = 'center'>
+Gambit Piece and Internal Gantry Movement
+<p/>
 
 The journey to bring Gambit to life has been a long and challenging one, but I am proud of the work that I have accomplished and look forward to continuing to refine and improve upon this exciting project.
 
