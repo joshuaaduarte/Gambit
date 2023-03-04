@@ -35,9 +35,9 @@ void setup() {
 
   // Stepper Motor Settings
   stepper1.setMaxSpeed(2000);
-  stepper1.setAcceleration(2550);
+  stepper1.setAcceleration(2200);
   stepper2.setMaxSpeed(2000);
-  stepper2.setAcceleration(2550);
+  stepper2.setAcceleration(2200);
   float pos1 = 200;
   float pos2 = 200;
 
