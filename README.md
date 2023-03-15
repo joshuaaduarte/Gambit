@@ -55,4 +55,7 @@ The journey to bring Gambit to life has been a long and challenging one, but I a
 
 </font>
 
+## 3/14/2023
+
+The hardware and cable managmenet associated with the project has been completed. The system integration is currently being completed. To be complete, a complete game of chess must be played that included both castling capabilities and the board or the user winning. 
 ___
