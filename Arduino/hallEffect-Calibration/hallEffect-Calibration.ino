@@ -62,10 +62,9 @@ void loop() {
        Serial.print(" ");
        digitalWrite(i, LOW);
      }
-        Serial.println();     
+       Serial.println();     
     }
     Serial.println();     
-   
    delay(1000);
 
   

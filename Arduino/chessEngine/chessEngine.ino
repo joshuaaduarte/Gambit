@@ -1,12 +1,6 @@
-/***************************************************************************/
-/* Ported chess program to Arduino UNO by rom3                             */
-/* Based on:         micro-Max,       version 4.8                          */
-/* A chess program smaller than 2KB (of non-blank source), by H.G. Muller  */
-/* Chessuino by Diego Cueva                                                */ 
-/* Atmel ATMega644 and AVR GCC, by Andre Adrian                            */
-/* May 12 2019        Germany                                              */
-/***************************************************************************/
+// The following code serves as the integration of the chess engine, movement script, and the sensing script to create a functional chessboard
 
+// Chess Engine Initialization Script (DO NOT TOUCH)
 #define W while
 #define M 0x88
 #define S 128
@@ -48,28 +42,486 @@ unsigned short ledv=1;
 String inputString = "";
 bool stringComplete = false;  // whether the string is complete
 
+// End of Chess Engine Initialization 
+// ----------------------------------------------------------------------------------------
+// Inclusions
+  #include <AccelStepper.h>
+  #include <ezButton.h>
+
+// Movement Initialization
+  // Motor Pin Connections
+    const int dirPin = 5;
+    const int stepPin = 2;
+    const int dirPin2 =6;
+    const int stepPin2 = 3;
+    
+  // Magnet Pin
+    const int magnet = 11;
+    
+  // Defining Stepper Motors with Respective Pins
+    AccelStepper stepper1(AccelStepper::DRIVER, stepPin, dirPin);
+    AccelStepper stepper2(AccelStepper::DRIVER, stepPin2, dirPin2);
+    
+  // Limit Switches
+    ezButton limitswitch(10);
+    ezButton limitswitch2(9);
+    
+
+// Sensing Initialization 
+
+  // Boards to be used for comparisons
+    int initialBoard[8][8] = {
+      {1, 1, 1, 1, 1, 1, 1, 1},
+      {1, 1, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0},
+      {1, 1, 1, 1, 1, 1, 1, 1},
+      {1, 1, 1, 1, 1, 1, 1, 1}
+    };
+  
+    int copyBoard[8][8] = {
+      {1, 1, 1, 1, 1, 1, 1, 1},
+      {1, 1, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0},
+      {1, 1, 1, 1, 1, 1, 1, 1},
+      {1, 1, 1, 1, 1, 1, 1, 1}
+    };
+  
+    int chessboard[8][8];
+
+  
+  // Calibration Board for Sensors 
+    int calibration[8][8] = {
+      {419, 427, 420, 424, 422, 418, 421, 423},
+      {408, 436, 437, 425, 427, 412, 423, 421},
+      {394, 433, 420, 432, 422, 407, 412, 421},
+      {409, 427, 435, 415, 420, 416, 421, 429},
+      {414, 416, 428, 432, 434, 402, 410, 408},
+      {406, 434, 433, 438, 452, 405, 410, 437},
+      {421, 401, 421, 418, 430, 422, 401, 416},
+      {420, 418, 430, 434, 415, 408, 436, 413}
+    };
+
 void setup() {
   Serial.begin(9600);
   Serial.println("*** MicroMaxChess ***");
   lastH[0] = 0;
   serialBoard();
+
+  // Stepper Motor Settings
+    stepper1.setMaxSpeed(2000);
+    stepper1.setAcceleration(2200);
+    stepper2.setMaxSpeed(2000);
+    stepper2.setAcceleration(2200);
+    float pos1 = 200;
+    float pos2 = 200;
+    
+  // Limit Switch Settings
+    pinMode(9, INPUT_PULLUP);
+    pinMode(10, INPUT_PULLUP);
+    limitswitch.setDebounceTime(5); // set debounce time to 50 milliseconds
+    limitswitch2.setDebounceTime(5);
+    
+  // Electromagnet Settings
+    pinMode(magnet, OUTPUT); 
+    
+  // Sensing Pins 
+    pinMode(22, OUTPUT);
+    pinMode(23, OUTPUT);
+    pinMode(24, OUTPUT);
+    pinMode(25, OUTPUT);
+    pinMode(26, OUTPUT);
+    pinMode(27, OUTPUT);
+    pinMode(28, OUTPUT);
+    pinMode(29, OUTPUT);
+  
+    pinMode(A8, INPUT);
+    pinMode(A9, INPUT);
+    pinMode(A10, INPUT);
+    pinMode(A11, INPUT);
+    pinMode(A12, INPUT);
+    pinMode(A13, INPUT);
+    pinMode(A14, INPUT);
+    pinMode(A15, INPUT);
+
+  // Check if board is setup properly
+  
+  
 }
+
+
+// Functions
+
+  // Functions pertaining to scanning
+    // Scan and Print array 
+    void scanPrint(){
+      int chessboard[8][8];
+      int calibration[8][8] = {
+        {419, 427, 420, 424, 422, 418, 421, 423},
+        {408, 436, 437, 425, 427, 412, 423, 421},
+        {394, 433, 420, 432, 422, 407, 412, 421},
+        {409, 427, 435, 415, 420, 416, 421, 429},
+        {414, 416, 428, 432, 434, 402, 410, 408},
+        {406, 434, 433, 438, 452, 405, 410, 437},
+        {421, 401, 421, 418, 430, 422, 401, 416},
+        {420, 418, 430, 434, 415, 408, 436, 413}
+      };
+      int rowInput[8]= {A8, A9, A10, A11, A12, A13, A14, A15}; 
+      for (int j = 0; j < 8;j++){
+       for(int i = 22; i < 30; i++){
+         digitalWrite(i, HIGH);
+         chessboard[22-i][j] = analogRead(rowInput[j]) - calibration[j][i-22];
+         if (chessboard[22-i][j] < -5){
+          chessboard[22-i][j] = 1;
+          Serial.print(chessboard[22-i][j]);
+         } 
+         else{
+          chessboard[22-i][j] = 0;
+          Serial.print(chessboard[22-i][j]);
+         }
+         Serial.print(" ");
+         digitalWrite(i, LOW);
+       }
+          Serial.println();     
+      }
+      Serial.println();     
+    }
+
+    // Check Setup to see if scan matches what 'board' is 
+      void checkSetup(int board[8][8]){
+          int flag1 = 0;
+          int flag2 = 0;
+          int flag3 = 0;
+          int chessboard[8][8];
+          int calibration[8][8] = {
+            {419, 427, 420, 424, 422, 418, 421, 423},
+            {408, 436, 437, 425, 427, 412, 423, 421},
+            {394, 433, 420, 432, 422, 407, 412, 421},
+            {409, 427, 435, 415, 420, 416, 421, 429},
+            {414, 416, 428, 432, 434, 402, 410, 408},
+            {406, 434, 433, 438, 452, 405, 410, 437},
+            {421, 401, 421, 418, 430, 422, 401, 416},
+            {420, 418, 430, 434, 415, 408, 436, 413}
+          };
+      
+          
+          int rowInput[8]= {A8, A9, A10, A11, A12, A13, A14, A15}; 
+          while(flag3==0 ){
+            flag1 = 0;
+            flag2 = 0;
+            for (int j = 0; j < 8;j++){
+             for(int i = 22; i < 30; i++){
+               digitalWrite(i, HIGH);
+               chessboard[22-i][j] = analogRead(rowInput[j]) - calibration[j][i-22];
+               if (chessboard[22-i][j] < -5){
+                chessboard[22-i][j] = 1;
+                if (chessboard[22-i][j] != board[j][i-22]){
+                  flag2 = 1;
+                }
+               } 
+               else{
+                chessboard[22-i][j] = 0;
+                if (chessboard[22-i][j] != board[j][i-22]){
+                  flag1 = 1;
+                }
+               }
+               digitalWrite(i, LOW);
+             }
+            }
+            if (flag1 == 0 && flag2 == 0){
+              flag3 = 1;
+              Serial.println("Correct Setup");
+            }
+            else{
+              Serial.println("Incorrect Setup");
+              delay(5000);
+            }
+          }
+      }
+
+      
+    // Compares scan with 'compareBoard' and outputs 4 character array 'c' that indicated where it was picked up from and where it was placed using a2a4 format.
+      char compareFunction(int compareBoard[8][8], char c[5]){
+          int flag1 = 0;
+          int flag2 = 0;
+          char rows[8] = {'1','2','3','4','5','6','7','8'};
+          char columns[8] = {'a','b','c','d','e','f','g','h'};
+          int chessboard[8][8];
+          int calibration[8][8] = {
+            {419, 427, 420, 424, 422, 418, 421, 423},
+            {408, 436, 437, 425, 427, 412, 423, 421},
+            {394, 433, 420, 432, 422, 407, 412, 421},
+            {409, 427, 435, 415, 420, 416, 421, 429},
+            {414, 416, 428, 432, 434, 402, 410, 408},
+            {406, 434, 433, 438, 452, 405, 410, 437},
+            {421, 401, 421, 418, 430, 422, 401, 416},
+            {420, 418, 430, 434, 415, 408, 436, 413}
+          };
+          int rowInput[8]= {A8, A9, A10, A11, A12, A13, A14, A15}; 
+          while( flag1==0 || flag2==0 ){
+          for (int j = 0; j < 8;j++){
+           for(int i = 22; i < 30; i++){
+             digitalWrite(i, HIGH);
+             chessboard[22-i][j] = analogRead(rowInput[j]) - calibration[j][i-22];
+             if (chessboard[22-i][j] < -5){
+              chessboard[22-i][j] = 1;
+              // Where piece was placed
+              if (chessboard[22-i][j] != compareBoard[j][i-22]){
+                c[2] = columns[i-22];
+                c[3] = rows[7-j];
+                flag2 = 1;
+              }
+             } 
+             else{
+              chessboard[22-i][j] = 0;
+              // Where piece was picked up
+              if (chessboard[22-i][j] != compareBoard[j][i-22]){
+                c[0] = columns[i-22];
+                c[1] = rows[7-j];
+                flag1 = 1;
+              }
+             }
+             //Serial.print(" ");
+             digitalWrite(i, LOW);
+           }
+           //Serial.println();     
+          }
+          }
+          c[4] = 0; 
+          return c;
+      }
+
+    // Chess Move Function that will output four character move and can determine if a piece is conquered or not
+    char chessMove(int compareBoard[8][8], char c[5]){
+        int flag1 = 0;
+        int flag2 = 0;
+        int flag3 = 0;
+        int flagBreak = 0;
+        int flagF = 0; 
+        int pieceCheckOne = 0;
+        int piece2CheckOne = 0;
+        int pieceCheckTwo = 0;
+        int piece2CheckTwo = 0;
+        char rows[8] = {'1','2','3','4','5','6','7','8'};
+        char columns[8] = {'a','b','c','d','e','f','g','h'};
+        int chessboard[8][8];
+        int copyBoard[8][8];
+        int copyBoard2[8][8];
+        c[4] = 0;
+        
+        int calibration[8][8] = {
+          {419, 427, 420, 424, 422, 418, 421, 423},
+          {408, 436, 437, 425, 427, 412, 423, 421},
+          {394, 433, 420, 432, 422, 407, 412, 421},
+          {409, 427, 435, 415, 420, 416, 421, 429},
+          {414, 416, 428, 432, 434, 402, 410, 408},
+          {406, 434, 433, 438, 452, 405, 410, 437},
+          {421, 401, 421, 418, 430, 422, 401, 416},
+          {420, 418, 430, 434, 415, 408, 436, 413}
+        };
+        int rowInput[8]= {A8, A9, A10, A11, A12, A13, A14, A15};  
+        // While loop that will not stop until a move is made 
+        while( flagF==0 ){
+    
+          // While loop that will run until it recognizes a move has initiated (a piece is picked up)
+          while( flag1 == 0){
+            // Scan board to see if board is altered 
+            for (int j = 0; j < 8;j++){
+             for(int i = 22; i < 30; i++){
+               digitalWrite(i, HIGH);
+               chessboard[22-i][j] = analogRead(rowInput[j]) - calibration[j][i-22];
+               if (chessboard[22-i][j] < -5){
+                chessboard[22-i][j] = 1;
+                copyBoard[j][i-22] = 1;
+                // Piece was added
+                if (chessboard[22-i][j] != compareBoard[j][i-22]){
+                  Serial.println("Piece has been added. Please Remove");
+                }
+               } 
+               else{
+                chessboard[22-i][j] = 0;
+                copyBoard[j][i-22] = 0;
+                // Where piece was picked up
+                if (chessboard[22-i][j] != compareBoard[j][i-22]){
+                  c[0] = columns[i-22];
+                  c[1] = rows[7-j];
+                  pieceCheckOne = i-22;
+                  piece2CheckOne = j;
+                  flag1 = 1;
+                }
+               }
+               digitalWrite(i, LOW);
+             }
+            }  
+          }
+        // While loop that determines if a piece is placed once picked up or a potential conquered move is happening
+        while (flag2 == 0){
+          // Scan board to see if it is altered from the copy board that was just made from previous scan
+          for (int j = 0; j < 8;j++){
+           for(int i = 22; i < 30; i++){
+             digitalWrite(i, HIGH);
+             chessboard[22-i][j] = analogRead(rowInput[j]) - calibration[j][i-22];
+             if (chessboard[22-i][j] < -5){
+              chessboard[22-i][j] = 1;
+              copyBoard2[j][i-22] = 1;
+    
+              // Actions if piece is placed
+              if (chessboard[22-i][j] != copyBoard[j][i-22]){
+                if (pieceCheckOne == 22-i && piece2CheckOne == j){
+                  Serial.println("piece placed back down");
+                  c[2] = columns[i-22];
+                  c[3] = rows[7-j];
+                  flag2 = 1;
+                  flagBreak = 1;
+                }
+                else{
+                  c[2] = columns[i-22];
+                  c[3] = rows[7-j];
+                  flag2 = 1;
+                  flagBreak = 1;
+                }
+              }
+             } 
+             else{
+              chessboard[22-i][j] = 0;
+              copyBoard2[j][i-22] = 0;
+              // Check if second piece is picked up
+              if (chessboard[22-i][j] != copyBoard[j][i-22]){
+                flag2 = 1;
+                pieceCheckTwo = 22-i;
+                piece2CheckTwo = j;
+              }
+             }
+             digitalWrite(i, LOW);
+           }
+          }
+        }
+    
+        // Break if second move was determine
+        if (flagBreak == 1){
+          break;
+        }
+          
+        // while loop to tell if piece was conquered
+        while (flag3 == 0){
+          // scan to see if piece was placed in conquered spot or a different square which would result in an error
+          for (int j = 0; j < 8;j++){
+           for(int i = 22; i < 30; i++){
+             digitalWrite(i, HIGH);
+             chessboard[22-i][j] = analogRead(rowInput[j]) - calibration[j][i-22];
+             if (chessboard[22-i][j] < -5){
+              chessboard[22-i][j] = 1;
+              // Where piece was placed
+              if (chessboard[22-i][j] != copyBoard2[j][i-22]){
+                if (pieceCheckTwo == 22-i && piece2CheckTwo == j){
+                  Serial.println("piece conquered");
+                  c[2] = columns[i-22];
+                  c[3] = rows[7-j];
+                  flag3 = 1;
+                  flagF = 1;
+                }
+                else{
+                  Serial.println("Piece placed in non conquered square. Error");
+                  delay(2500);
+                }
+              }
+             } 
+             else{
+              chessboard[22-i][j] = 0;
+              // Where piece was picked up
+              if (chessboard[22-i][j] != copyBoard2[j][i-22]){
+                Serial.println("Third Piece Picked Up. Error");
+                delay(2500);
+              }
+             }
+             digitalWrite(i, LOW);
+           }
+           
+          }
+        }
+        
+    
+        }
+        return c;
+    }    
+      
+
+
+  // Functions pertaining to movement 
+    // Turn On Electromagnet
+      void magnetOn(){
+        digitalWrite(magnet, HIGH); 
+      }
+    // Turn Off Electromagnet
+      void magnetOff(){
+        digitalWrite(magnet, LOW);
+      }
+    // Conquer Movement
+
+    // Move A to B Vertical
+
+    // Move A to B Horizontal
+
+    // Move A to B Diagonal
+
+    // Move A to B Knight
+
+    // Move A to B Castle 
+
+    // Homing 
+    void home(){
+      limitswitch.loop();
+      while (digitalRead(10) == HIGH){
+        stepper1.move(200);
+        stepper2.move(200);
+        stepper1.run();
+        stepper2.run();
+      }
+      
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      
+      limitswitch2.loop();
+      while (digitalRead(9) == HIGH){
+        stepper1.move(200);
+        stepper2.move(-200);
+        stepper1.run();
+        stepper2.run();
+      }
+    }
+
+// Functions
+// ------------------------------------------------------------------
+
 
 void loop() {
   int r;
+
+  // Scan board and see if it matches the initial board setup. 
+  checkSetup(copyBoard);
+  
+
+  
   // Take move from human
-  while (stringComplete == false) {
-    getserialchar();
-  }
-  Serial.print(mn);
-  Serial.print(". ");
-  Serial.print(inputString.substring(0,4));
-  c[0] = inputString.charAt(0);
-  c[1] = inputString.charAt(1);
-  c[2] = inputString.charAt(2);
-  c[3] = inputString.charAt(3);
-  c[4] = 0;
+  
+//  while (stringComplete == false) {
+//    getserialchar();
+//  }
+//  Serial.print(mn);
+//  Serial.print(". ");
+//  Serial.print(inputString.substring(0,4));
+//  c[0] = inputString.charAt(0);
+//  c[1] = inputString.charAt(1);
+//  c[2] = inputString.charAt(2);
+//  c[3] = inputString.charAt(3);
+//  c[4] = 0;
   // clear the string:
+  chessMove(copyBoard, c);
   inputString = "";
   stringComplete = false;
   Serial.print(" Think ");                       /* Turn for ARDUINO */
@@ -241,6 +693,12 @@ void serialBoard(){
             char c = sym[b[16*i+j]&15];
             Serial.print(c);
             Serial.print(' ');
+            if (c == '.'){
+              copyBoard[i][j]=0;
+            }
+            else {
+              copyBoard[i][j]=1;
+            } 
         }
         Serial.println('|');
   }
