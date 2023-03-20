@@ -60,7 +60,9 @@ The journey to bring Gambit to life has been a long and challenging one, but I a
 The hardware and cable managmenet associated with the project has been completed. The system integration is currently being completed. To be complete, a complete game of chess must be played that included both castling capabilities and the board or the user winning. 
 
 <p align = 'center'>
-<img src="images/3-14Board.JPG" width="400" height="300">
+<img src="images/3-14Board.JPG" width="400" height="300" style="margin-right: 10px;">
+<img src="images/boardAssembly.jpg" width="400" height="300" >
+
 <p/>
 <p align = 'center'>
 3-14-2023 Board Status
