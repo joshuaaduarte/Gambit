@@ -66,6 +66,11 @@ bool stringComplete = false;  // whether the string is complete
     ezButton limitswitch(10);
     ezButton limitswitch2(9);
     
+// conquered count 
+int pieceCount = 32;
+int pieceCountNew = 0;
+int moveCount = 0;
+int count = 0;
 
 // Sensing Initialization 
 
@@ -112,12 +117,12 @@ void setup() {
   Serial.println("*** MicroMaxChess ***");
   lastH[0] = 0;
   serialBoard();
-
+  //checkSetup(copyBoard);
   // Stepper Motor Settings
-    stepper1.setMaxSpeed(2000);
-    stepper1.setAcceleration(2200);
-    stepper2.setMaxSpeed(2000);
-    stepper2.setAcceleration(2200);
+    stepper1.setMaxSpeed(2100);
+    stepper1.setAcceleration(2400);
+    stepper2.setMaxSpeed(2100);
+    stepper2.setAcceleration(2400);
     float pos1 = 200;
     float pos2 = 200;
     
@@ -235,7 +240,7 @@ void setup() {
             }
             if (flag1 == 0 && flag2 == 0){
               flag3 = 1;
-              Serial.println("Correct Setup");
+              Serial.println("Correct Setup. Your Move.");
             }
             else{
               Serial.println("Incorrect Setup");
@@ -422,6 +427,7 @@ void setup() {
                   Serial.println("piece conquered");
                   c[2] = columns[i-22];
                   c[3] = rows[7-j];
+                  c[4] = '1';
                   flag3 = 1;
                   flagF = 1;
                 }
@@ -501,8 +507,21 @@ void setup() {
 
 void loop() {
   int r;
+  int conquer = 0;
+  Serial.println(pieceCount);
+  Serial.println(pieceCountNew);
 
   // Scan board and see if it matches the initial board setup. 
+
+  if (moveCount != 0){
+
+    if (pieceCount > pieceCountNew){
+      conquer = 1;
+      count += 1;
+      pieceCount = pieceCountNew;
+    }
+      movement(lastM, count, conquer);
+  }
   checkSetup(copyBoard);
   
 
@@ -522,6 +541,10 @@ void loop() {
 //  c[4] = 0;
   // clear the string:
   chessMove(copyBoard, c);
+  if (c[4] == '1'){
+    pieceCount = pieceCount - 1;
+    c[4] = '0';
+  }
   inputString = "";
   stringComplete = false;
   Serial.print(" Think ");                       /* Turn for ARDUINO */
@@ -561,6 +584,9 @@ void loop() {
   }
 Serial.println(lastM);
    serialBoard();
+
+moveCount += 1;
+
 }
 
 
@@ -684,6 +710,7 @@ void bkp() {
   }
 }
 void serialBoard(){
+  pieceCountNew = 0;
   Serial.println("  +-----------------+");
   for(int i=0; i<8; i++){
         Serial.print(' ');
@@ -698,10 +725,867 @@ void serialBoard(){
             }
             else {
               copyBoard[i][j]=1;
+              pieceCountNew += 1;
             } 
         }
         Serial.println('|');
   }
   Serial.println("  +-----------------+");
   Serial.println("   a b c d e f g h");
+}
+
+//---------------Movement-------------------
+int conquerFunction(int board[8][8], int conquer){
+          int flag1 = 0;
+          int flag2 = 0;
+          int flag3 = 0;
+          int chessboard[8][8];
+          int calibration[8][8] = {
+            {419, 427, 420, 424, 422, 418, 421, 423},
+            {408, 436, 437, 425, 427, 412, 423, 421},
+            {394, 433, 420, 432, 422, 407, 412, 421},
+            {409, 427, 435, 415, 420, 416, 421, 429},
+            {414, 416, 428, 432, 434, 402, 410, 408},
+            {406, 434, 433, 438, 452, 405, 410, 437},
+            {421, 401, 421, 418, 430, 422, 401, 416},
+            {420, 418, 430, 434, 415, 408, 436, 413}
+          };
+      
+          
+          int rowInput[8]= {A8, A9, A10, A11, A12, A13, A14, A15}; 
+            flag1 = 0;
+            flag2 = 0;
+            for (int j = 0; j < 8;j++){
+             for(int i = 22; i < 30; i++){
+               digitalWrite(i, HIGH);
+               chessboard[22-i][j] = analogRead(rowInput[j]) - calibration[j][i-22];
+               if (chessboard[22-i][j] < -5){
+                chessboard[22-i][j] = 1;
+                if (chessboard[22-i][j] != board[j][i-22]){
+                  conquer = 1;
+                  Serial.println("Computer Conquer");
+                }
+               } 
+               else{
+                chessboard[22-i][j] = 0;
+
+               }
+               digitalWrite(i, LOW);
+             }
+            }
+            return conquer;
+}
+
+void movement(char lastM[5], int count, int conquer){
+    char rows[8] = {'1','2','3','4','5','6','7','8'};
+    char columns[8] = {'a','b','c','d','e','f','g','h'};
+    
+    int rowStep[8] = {2075,1805,1515,1220, 945, 650, 365, 70};
+    int columnStep[8] = {430,715,1020,1300,1590, 1885,2175,2450};
+    int countStepConquerX[2] = {140,250};
+    int rowStepConquer[16] = {2075,2075,1805,1805,1515,1515,1220,1220, 945, 945,650, 650,365,365,70,70}; 
+    int coordinateOneX = 0;
+    int coordinateOneY = 0;
+    int coordinateTwoX = 0;
+    int coordinateTwoY = 0;
+
+    int rotationOneX = 0;
+    int rotationOneY = 0;
+    int rotationTwoX = 0;
+    int rotationTwoY = 0;
+
+    int flag1 = 1;
+    int flag2 = 1;
+
+    const int magnet = 11;
+    pinMode(magnet, OUTPUT); 
+    // Break down given character array into coordinates
+    for (int i=0; i<8; i++){
+      if(lastM[0] == columns[i]){
+        coordinateOneX = i;
+        }
+      if(lastM[2] == columns[i]){
+        coordinateTwoX = i;
+        }
+    }
+    for (int i=0; i<8; i++){
+      if(lastM[1] == rows[i]){
+        coordinateOneY = i;
+        }
+      if(lastM[3] == rows[i]){
+        coordinateTwoY = i;
+        }
+    }
+    
+    int flagCastle = 0;
+        
+    rotationOneX = columnStep[coordinateOneX];
+    rotationOneY = rowStep[coordinateOneY];
+
+    rotationTwoX = columnStep[coordinateTwoX];
+    rotationTwoY = rowStep[coordinateTwoY];
+
+    // Determine what type of movement it is
+    // Conquer ------------------------------------------------------------------------------------------------
+    if (conquer==1){
+      //move to conquered piece square
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationTwoX);
+        stepper2.moveTo(rotationTwoX);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      //Move to initial Y coordinate
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationTwoY);
+        stepper2.moveTo(-rotationTwoY);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      // Turn on Magnet
+      digitalWrite(magnet, HIGH);
+      // move over by half a square towards user
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-142);
+        stepper2.moveTo(-142);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      // move to edge of board
+      int toEdge = rotationTwoX - 250;
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(toEdge);
+        stepper2.moveTo(-toEdge);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+     // Travel to designated y slot for placement
+      int toPlaceholder = rotationTwoY + 142 - rowStepConquer[16-count];
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(toPlaceholder);
+        stepper2.moveTo(toPlaceholder);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1; 
+     // Places in proper column
+     if (count%2 == 0){
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(countStepConquerX[0]);
+        stepper2.moveTo(-countStepConquerX[0]);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;            
+     }
+     else{
+    while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(countStepConquerX[1]);
+        stepper2.moveTo(-countStepConquerX[1]);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+     }
+     // Turns off magnet and homes the motor
+     digitalWrite(magnet, LOW);
+      limitswitch.loop();
+      while (digitalRead(10) == HIGH){
+          stepper1.move(200);
+          stepper2.move(200);
+          stepper1.run();
+          stepper2.run();
+      }
+      
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+                        
+      limitswitch2.loop();
+      while (digitalRead(9) == HIGH){
+      stepper1.move(200);
+      stepper2.move(-200);
+      stepper1.run();
+      stepper2.run();
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);      
+      
+    }
+
+    
+    // Castle ------------------------------------------------------------------------------------------------
+    if ((((coordinateOneX == 4) && (coordinateOneY == 7)) && ((coordinateTwoX == 2) && (coordinateTwoY == 7))) || (((coordinateOneX == 4) && (coordinateOneY == 7)) && ((coordinateTwoX == 6) && (coordinateTwoY == 7)))){
+      flagCastle = 1;
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationOneX);
+        stepper2.moveTo(rotationOneX);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      //Move to initial Y coordinate
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationOneY);
+        stepper2.moveTo(-rotationOneY);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      // Turn on Magnet
+      digitalWrite(magnet, HIGH);      
+
+    // move king forwards
+
+
+    // Move king over to two
+    if (coordinateTwoX == 2){
+    while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(590);
+      stepper2.moveTo(-590);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1; 
+        while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(60);
+      stepper2.moveTo(60);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1;
+    
+    digitalWrite(magnet, LOW);
+    
+    while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(590);
+      stepper2.moveTo(-590);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1; 
+
+    digitalWrite(magnet, HIGH);
+
+    while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(-180);
+      stepper2.moveTo(-180);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1;
+
+    while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(-910);
+      stepper2.moveTo(910);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1; 
+
+    while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(170);
+      stepper2.moveTo(170);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1;
+        
+           
+    }
+
+    else{
+    while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(-590);
+      stepper2.moveTo(590);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1; 
+        while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(60);
+      stepper2.moveTo(60);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1;
+    
+    digitalWrite(magnet, LOW);   
+
+while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(-250);
+      stepper2.moveTo(250);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1; 
+
+    digitalWrite(magnet, HIGH);
+
+    while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(-180);
+      stepper2.moveTo(-180);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1;
+
+    while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(565);
+      stepper2.moveTo(-565);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1; 
+
+    while (flag1 == 1 && flag2 == 1){
+      stepper1.moveTo(170);
+      stepper2.moveTo(170);
+      stepper1.run();
+      stepper2.run();
+      if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+        flag1 = 0;
+        flag2 = 0;
+      }
+    }
+    stepper1.setCurrentPosition(0);
+    stepper2.setCurrentPosition(0);
+    flag1 = 1;
+    flag2 = 1;
+
+       
+    }
+    
+    // Turn off Magnet
+    digitalWrite(magnet, LOW);
+    //
+     
+    }    
+    // Horizontal ------------------------------------------------------------------------------------------------
+    if ((coordinateOneY == coordinateTwoY) && (flagCastle == 0)){
+      // Move to coordinate One
+      // Move to initial X coordinate
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationOneX);
+        stepper2.moveTo(rotationOneX);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      //Move to initial Y coordinate
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationOneY);
+        stepper2.moveTo(-rotationOneY);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      // Turn on Magnet
+      digitalWrite(magnet, HIGH);
+      rotationTwoX = abs(columnStep[coordinateTwoX]-columnStep[coordinateOneX]);
+      rotationTwoY = abs(rowStep[coordinateTwoY]-rowStep[coordinateOneY]);
+      
+      if (coordinateTwoX > coordinateOneX){
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationTwoX);
+        stepper2.moveTo(rotationTwoX);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;        
+      }
+      else{
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(rotationTwoX);
+        stepper2.moveTo(-rotationTwoX);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;         
+      }
+    }
+
+    // vertical ------------------------------------------------------------------------------------------------
+    if (coordinateOneX == coordinateTwoX){
+      // Move to coordinate One
+      // Move to initial X coordinate
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationOneX);
+        stepper2.moveTo(rotationOneX);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      //Move to initial Y coordinate
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationOneY);
+        stepper2.moveTo(-rotationOneY);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      // Turn on Magnet
+      digitalWrite(magnet, HIGH);
+      rotationTwoX = abs(columnStep[coordinateTwoX]-columnStep[coordinateOneX]);
+      rotationTwoY = abs(rowStep[coordinateTwoY]-rowStep[coordinateOneY]);
+      
+      if (coordinateTwoY > coordinateOneY){
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(rotationTwoY+55);
+        stepper2.moveTo(rotationTwoY+55);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;        
+      }
+      else{
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationTwoY);
+        stepper2.moveTo(-rotationTwoY);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;         
+      }
+    }
+
+
+
+    // knight ------------------------------------------------------------------------------------------------
+    int rowChange = abs(coordinateOneY - coordinateTwoY);
+    int colChange = abs(coordinateOneX - coordinateTwoX);
+
+    // height movement
+    int heightRotation = 293*(coordinateOneY - coordinateTwoY);
+    int sideRotationRight = (280*(coordinateTwoX - coordinateOneX))-140;
+    int sideRotationLeft = (280*(coordinateOneX - coordinateTwoX))-140;
+
+    if ((rowChange == 2 && colChange == 1) || (rowChange == 1 && colChange == 2)){
+      // Move to coordinate One
+      // Move to initial X coordinate
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationOneX);
+        stepper2.moveTo(rotationOneX);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      //Move to initial Y coordinate
+      while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-rotationOneY);
+        stepper2.moveTo(-rotationOneY);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+      }
+      stepper1.setCurrentPosition(0);
+      stepper2.setCurrentPosition(0);
+      flag1 = 1;
+      flag2 = 1;
+      // Turn on Magnet
+      digitalWrite(magnet, HIGH);
+            
+      // if knight is moving to right
+      if (coordinateOneX < coordinateTwoX){
+        //move knight over to line
+        while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(-142);
+        stepper2.moveTo(142);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;
+        while (flag1 == 1 && flag2 == 1){
+          stepper1.moveTo(-heightRotation);
+          stepper2.moveTo(-heightRotation);
+          stepper1.run();
+          stepper2.run();
+          if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+            flag1 = 0;
+            flag2 = 0;
+          }
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;
+
+        
+        while (flag1 == 1 && flag2 == 1){
+          stepper1.moveTo(-sideRotationRight);
+          stepper2.moveTo(sideRotationRight);
+          stepper1.run();
+          stepper2.run();
+          if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+            flag1 = 0;
+            flag2 = 0;
+          }
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;
+        
+     }
+
+      else{
+        //move knight over to line
+        while (flag1 == 1 && flag2 == 1){
+        stepper1.moveTo(142);
+        stepper2.moveTo(-142);
+        stepper1.run();
+        stepper2.run();
+        if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+          flag1 = 0;
+          flag2 = 0;
+        }
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;
+        while (flag1 == 1 && flag2 == 1){
+          stepper1.moveTo(-heightRotation);
+          stepper2.moveTo(-heightRotation);
+          stepper1.run();
+          stepper2.run();
+          if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+            flag1 = 0;
+            flag2 = 0;
+          }
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;
+
+        
+        while (flag1 == 1 && flag2 == 1){
+          stepper1.moveTo(sideRotationLeft);
+          stepper2.moveTo(-sideRotationLeft);
+          stepper1.run();
+          stepper2.run();
+          if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+            flag1 = 0;
+            flag2 = 0;
+          }
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;
+        
+      }
+               
+      }
+//    int rowChange = abs(coordinateOneY - coordinateTwoY);
+//    int colChange = abs(coordinateOneX - coordinateTwoX);
+      if (rowChange == colChange){
+        // Go to initial x and y coordinate
+        while (flag1 == 1 && flag2 == 1){
+          stepper1.moveTo(-rotationOneX);
+          stepper2.moveTo(rotationOneX);
+          stepper1.run();
+          stepper2.run();
+          if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+            flag1 = 0;
+            flag2 = 0;
+          }
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;
+        //Move to initial Y coordinate
+        while (flag1 == 1 && flag2 == 1){
+          stepper1.moveTo(-rotationOneY);
+          stepper2.moveTo(-rotationOneY);
+          stepper1.run();
+          stepper2.run();
+          if (stepper1.distanceToGo() == 0 && stepper2.distanceToGo() == 0){
+            flag1 = 0;
+            flag2 = 0;
+          }
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;
+        // Turn on Magnet
+        digitalWrite(magnet, HIGH);
+        // determine slope
+        int slope = (coordinateTwoY - coordinateOneY)/(coordinateTwoX - coordinateOneX);
+        int slopeMove = (coordinateTwoY - coordinateOneY)*605;
+
+        if (slope == 1){
+          while (flag1 == 1 && flag2 == 1){
+            stepper2.moveTo(slopeMove);
+            stepper2.run();
+            if (stepper2.distanceToGo() == 0){
+              flag1 = 0;
+              flag2 = 0;
+            }
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;                  
+        }
+        else{
+          while (flag1 == 1 && flag2 == 1){
+            stepper1.moveTo(slopeMove);
+            stepper1.run();
+            if (stepper1.distanceToGo() == 0){
+              flag1 = 0;
+              flag2 = 0;
+            }          
+        }
+        stepper1.setCurrentPosition(0);
+        stepper2.setCurrentPosition(0);
+        flag1 = 1;
+        flag2 = 1;           
+        }
+      }
+
+    
+
+    digitalWrite(magnet, LOW); 
+    delay(1000);
+    limitswitch.loop();
+while (digitalRead(10) == HIGH){
+    stepper1.move(200);
+    stepper2.move(200);
+    stepper1.run();
+    stepper2.run();
+}
+
+stepper1.setCurrentPosition(0);
+stepper2.setCurrentPosition(0);
+                  
+limitswitch2.loop();
+while (digitalRead(9) == HIGH){
+stepper1.move(200);
+stepper2.move(-200);
+stepper1.run();
+stepper2.run();
+}
+stepper1.setCurrentPosition(0);
+stepper2.setCurrentPosition(0);
+
 }
