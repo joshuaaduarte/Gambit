@@ -69,3 +69,18 @@ The hardware and cable managmenet associated with the project has been completed
 <p/>
 
 ___
+## 3/21/2023
+<font size='4'> 
+The board has since been made capable to play a full game of chess. Below is a clip of a couple of movements completed by myself and the board. 
+  
+
+In the next few weeks, the board will be worked on to make it run more smoothly with respect to the boards movements. The code will also be adjusted to interact with the user in a more friendly manner.
+</font>
+
+
+<p align = 'center'>
+<img src="images/gambitMove.gif" width="400" height="300">
+<p/>
+<p align = 'center'>
+Playing against Gambit
+<p/>
