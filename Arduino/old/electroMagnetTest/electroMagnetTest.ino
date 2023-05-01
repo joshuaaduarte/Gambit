@@ -1,4 +1,4 @@
-const int pin = 6;
+const int pin = 11;
 //Recuerda que debes usar el pin correcto que hayas utilizado en el esquema eléctrico de tu proyecto
   
 void setup() {
